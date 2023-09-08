@@ -1,3 +1,3 @@
-module github.com/njasm/marionette_client
+module github.com/dennwc/marionette
 
-go 1.15
+go 1.20

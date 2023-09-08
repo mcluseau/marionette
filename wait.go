@@ -1,4 +1,4 @@
-package marionette_client
+package marionette
 
 import (
 	"errors"
@@ -36,14 +36,9 @@ func (w *Waiter) Until(f func(c Finder) (bool, *WebElement, error)) (bool, *WebE
 		firstRun = false
 
 		ok, value, err := f(w.f)
-		if err != nil {
-			_, de := err.(DriverError)
-			if de {
-				return false, nil, err
-			}
-		}
-
-		if ok {
+		if _, is := err.(*DriverError); is {
+			return false, nil, err
+		} else if ok {
 			return true, value, err
 		}
 

@@ -1,6 +1,7 @@
-package marionette_client
+package marionette
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -10,20 +11,12 @@ import (
 	"time"
 )
 
-type Transporter interface {
-	MessageID() int
-	Connect(host string, port int) error
-	Close() error
-	Send(command string, values interface{}) (*Response, error)
-	Receive() ([]byte, error)
-}
-
-type MarionetteTransport struct {
+type Transport struct {
 	ApplicationType    string
 	MarionetteProtocol int32
 	messageID          int
 	conn               net.Conn
-	de                 DecoderEncoder
+	de                 Codec
 }
 
 type Response struct {
@@ -33,34 +26,28 @@ type Response struct {
 	DriverError *DriverError
 }
 
-func connDefaultTimeout() time.Time {
+func connDefaultDeadline() time.Time {
 	return time.Now().Add(time.Minute * 5)
 }
 
-func (t *MarionetteTransport) MessageID() int {
+func (t *Transport) MessageID() int {
 	return t.messageID
 }
 
-func (t *MarionetteTransport) Connect(host string, port int) error {
+func (t *Transport) Connect(ctx context.Context, addr string) error {
 	if t.conn != nil {
 		return errors.New("a connection is already established. please disconnect before connecting")
 	}
-
-	if host == "" {
-		host = "127.0.0.1"
+	if addr == "" {
+		addr = "127.0.0.1:2828"
 	}
-
-	if port == 0 {
-		port = 2828
-	}
-
-	hostname := host + ":" + strconv.Itoa(port)
-	c, err := net.Dial("tcp", hostname)
+	var dialer net.Dialer
+	c, err := dialer.DialContext(ctx, "tcp", addr)
 	if err != nil {
 		return err
 	}
-
 	t.conn = c
+
 	r, err := t.Receive()
 	if err != nil {
 		return err
@@ -81,19 +68,21 @@ func (t *MarionetteTransport) Connect(host string, port int) error {
 	return nil
 }
 
-func (t *MarionetteTransport) Close() error {
+func (t *Transport) Close() error {
+	if t.conn == nil {
+		return nil
+	}
 	err := t.conn.Close()
 	if err != nil {
 		return err
 	}
-
 	t.conn = nil
 	return err
 }
 
-func (t *MarionetteTransport) Send(command string, values interface{}) (*Response, error) {
-	t.messageID = t.messageID + 1 // next message ID
-	buf, err := t.de.Encode(t, command, values)
+func (t *Transport) Send(command string, values any) (*Response, error) {
+	t.messageID++ // next message ID
+	buf, err := t.de.Encode(t.messageID, command, values)
 	if err != nil {
 		return nil, err
 	}
@@ -127,13 +116,21 @@ func (t *MarionetteTransport) Send(command string, values interface{}) (*Respons
 	return data, nil
 }
 
+func (t *Transport) SendAndDecode(dest any, command string, values any) error {
+	data, err := t.Send(command, values)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal([]byte(data.Value), dest)
+}
+
 func write(c net.Conn, b []byte) (int, error) {
-	c.SetDeadline(connDefaultTimeout())
+	c.SetDeadline(connDefaultDeadline())
 	return c.Write(b)
 }
 
-func (t *MarionetteTransport) Receive() ([]byte, error) {
-	t.conn.SetDeadline(connDefaultTimeout())
+func (t *Transport) Receive() ([]byte, error) {
+	t.conn.SetDeadline(connDefaultDeadline())
 	return read(t.conn)
 }
 

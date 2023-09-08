@@ -1,4 +1,4 @@
-package marionette_client
+package marionette
 
 type Navigator interface {
 	Navigate(url string) (*Response, error)

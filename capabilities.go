@@ -1,4 +1,4 @@
-package marionette_client
+package marionette
 
 type Capabilities struct {
 	BrowserName                   string
@@ -11,7 +11,7 @@ type Capabilities struct {
 	AcceptSslCerts                bool
 	TakesElementScreenshot        bool
 	TakesScreenshot               bool
-	Proxy                         interface{}
+	Proxy                         any
 	Platform                      string
 	XULappId                      string
 	AppBuildId                    string

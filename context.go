@@ -1,4 +1,4 @@
-package marionette_client
+package marionette
 
 type Context int
 

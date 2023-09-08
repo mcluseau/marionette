@@ -1,4 +1,4 @@
-package marionette_client
+package marionette
 
 import (
 	"encoding/json"
@@ -8,9 +8,9 @@ import (
 	"strconv"
 )
 
-func NewDecoderEncoder(protoVersion int32) (DecoderEncoder, error) {
+func NewDecoderEncoder(protoVersion int32) (Codec, error) {
 	if protoVersion == MARIONETTE_PROTOCOL_V3 {
-		return ProtoV3DecoderEncoder{}, nil
+		return ProtoV3{}, nil
 	}
 
 	m := fmt.Sprintf("No DecoderEncoder found for the specified version : %v", protoVersion)
@@ -23,20 +23,20 @@ type Decoder interface {
 }
 
 type Encoder interface {
-	Encode(t Transporter, command string, values interface{}) ([]byte, error)
+	Encode(id int, command string, values any) ([]byte, error)
 }
 
-type DecoderEncoder interface {
+type Codec interface {
 	Decoder
 	Encoder
 }
 
-type ProtoV3DecoderEncoder struct{}
+type ProtoV3 struct{}
 
-func (e ProtoV3DecoderEncoder) Encode(t Transporter, command string, values interface{}) ([]byte, error) {
-	message := make([]interface{}, 4)
+func (e ProtoV3) Encode(id int, command string, values any) ([]byte, error) {
+	message := make([]any, 4)
 	message[0] = 0
-	message[1] = t.MessageID()
+	message[1] = id
 	message[2] = command
 	message[3] = values
 
@@ -53,8 +53,8 @@ func (e ProtoV3DecoderEncoder) Encode(t Transporter, command string, values inte
 
 }
 
-func (e ProtoV3DecoderEncoder) Decode(buf []byte, r *Response) error {
-	var v []interface{}
+func (e ProtoV3) Decode(buf []byte, r *Response) error {
+	var v []any
 	if err := json.Unmarshal(buf, &v); err != nil {
 		return err
 	}
@@ -75,7 +75,7 @@ func (e ProtoV3DecoderEncoder) Decode(buf []byte, r *Response) error {
 	// error found on response?
 	if v[2] != nil {
 		re := &DriverError{}
-		for key, value := range v[2].(map[string]interface{}) {
+		for key, value := range v[2].(map[string]any) {
 			if key == "error" {
 				re.ErrorType = value.(string)
 			}
@@ -94,7 +94,7 @@ func (e ProtoV3DecoderEncoder) Decode(buf []byte, r *Response) error {
 	}
 
 	// It's a JSON Object
-	result, found := v[3].(map[string]interface{})
+	result, found := v[3].(map[string]any)
 	if found {
 		resultBytes, err := json.Marshal(result)
 		if err != nil {
@@ -106,7 +106,7 @@ func (e ProtoV3DecoderEncoder) Decode(buf []byte, r *Response) error {
 
 	if !found {
 		// JSON Array
-		result, found := v[3].([]interface{})
+		result, found := v[3].([]any)
 		if found {
 			resultBytes, err := json.Marshal(result)
 			if err != nil {

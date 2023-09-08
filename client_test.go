@@ -1,6 +1,7 @@
-package marionette_client
+package marionette
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"testing"
@@ -34,7 +35,7 @@ func navigateLocal(page string) (*Response, error) {
 
 func init() {
 	client = NewClient()
-	client.Transport(&MarionetteTransport{})
+	client.Transport(&Transport{})
 	RunningInDebugMode = true
 }
 
@@ -111,7 +112,7 @@ func TestInit(t *testing.T) {
 /*********/
 
 func NewSessionTest(t *testing.T) {
-	err := client.Connect("", 0)
+	err := client.Connect(context.Background(), "")
 	if err != nil {
 		t.Fatalf("%#v", err)
 	}
@@ -142,13 +143,13 @@ func GetPageTest(t *testing.T) {
 }
 
 func UrlTest(t *testing.T) {
-	url, err := client.Url()
+	url, err := client.URL()
 	if err != nil {
 		t.Fatalf("%#v", err)
 	}
 
 	if url != TARGET_URL {
-		t.Fatalf("Current Url %v not equal to target url %v", url, TARGET_URL)
+		t.Fatalf("Current URL %v not equal to target url %v", url, TARGET_URL)
 	}
 
 }
@@ -352,7 +353,7 @@ func GetActiveElementTest(t *testing.T) {
 		t.Fatalf("%#v", err)
 	}
 
-	if r.Attribute("id") != "email" || r.TagName() != "input" {
+	if v, _ := r.Attribute("id"); v != "email" || r.TagName() != "input" {
 		t.Fatalf("%#v", err)
 	}
 
@@ -424,7 +425,7 @@ func PageSourceTest(t *testing.T) {
 
 func ExecuteScriptWithoutFunctionTest(t *testing.T) {
 	script := "return (document.readyState == 'complete');"
-	args := []interface{}{}
+	args := []any{}
 	r, err := client.ExecuteScript(script, args, TIMEOUT, false)
 	if err != nil {
 		t.Fatalf("%#v", err)
@@ -435,7 +436,7 @@ func ExecuteScriptWithoutFunctionTest(t *testing.T) {
 
 func ExecuteScriptTest(t *testing.T) {
 	script := "function testMyGoMarionetteClient() { return 'yes'; } return testMyGoMarionetteClient();"
-	args := []interface{}{}
+	args := []any{}
 	r, err := client.ExecuteScript(script, args, TIMEOUT, false)
 	if err != nil {
 		t.Fatalf("%#v", err)
@@ -446,7 +447,7 @@ func ExecuteScriptTest(t *testing.T) {
 
 func ExecuteScriptWithArgsTest(t *testing.T) {
 	script := "function testMyGoMarionetteClientArgs(a, b) { return a + b; }; return testMyGoMarionetteClientArgs(arguments[0], arguments[1]);"
-	args := []interface{}{1, 3}
+	args := []any{1, 3}
 	r, err := client.ExecuteScript(script, args, TIMEOUT, false)
 	if err != nil {
 		t.Fatalf("%#v", err)
@@ -461,7 +462,7 @@ func ExecuteAsyncScriptWithArgsTest(t *testing.T) {
 		"let result = testMyGoMarionetteClientArgs(arguments[0], arguments[1]);" +
 		"resolve(result);"
 
-	args := []interface{}{3, 3}
+	args := []any{3, 3}
 	r, err := client.ExecuteAsyncScript(script, args, false)
 	if err != nil {
 		t.Fatalf("%#v", err)
@@ -502,8 +503,8 @@ func FindElementTest(t *testing.T) {
 	}
 
 	// id attribute and property must be equal
-	attId := element.Attribute("id")
-	propId := element.Property("id")
+	attId, _ := element.Attribute("id")
+	propId, _ := element.PropertyString("id")
 	if attId != propId {
 		t.Fatalf("Missmatch values from Attribute and Property 'id': first is %#v, former is %#v", attId, propId)
 	}
@@ -693,7 +694,7 @@ func NavigatorMethodsTest(t *testing.T) {
 	client.Refresh()
 	time.Sleep(sleep)
 
-	firstUrl, err := client.Url()
+	firstUrl, err := client.URL()
 	if err != nil {
 		t.Fatalf("%#v", err)
 	}
@@ -703,7 +704,7 @@ func NavigatorMethodsTest(t *testing.T) {
 	}
 
 	client.Forward()
-	secondUrl, err := client.Url()
+	secondUrl, err := client.URL()
 	if err != nil {
 		t.Fatalf("%#v", err)
 	}
@@ -717,7 +718,7 @@ func PromptTest(t *testing.T) {
 	navigateLocal("ul.html")
 	var text string = "marionette is cool or what - prompt?"
 	var script string = "prompt('" + text + "');"
-	args := []interface{}{}
+	args := []any{}
 
 	r, err := client.ExecuteScript(script, args, TIMEOUT, false)
 	if err != nil {
@@ -743,7 +744,7 @@ func AlertTest(t *testing.T) {
 	navigateLocal("table.html")
 	var text string = "marionette is cool or what?"
 	var script string = "alert('" + text + "');"
-	args := []interface{}{}
+	args := []any{}
 	r, err := client.ExecuteScript(script, args, TIMEOUT, false)
 	if err != nil {
 		t.Fatalf("%#v", err)

@@ -1,8 +1,9 @@
-package marionette_client
+package marionette
 
 import (
 	"encoding/json"
 	"fmt"
+	"image"
 )
 
 type Point struct {
@@ -37,15 +38,15 @@ func (e *WebElement) Id() string {
 }
 
 func (e *WebElement) GetActiveElement() (*WebElement, error) {
-	return getActiveElement(e.c)
+	return e.c.GetActiveElement()
 }
 
 func (e *WebElement) FindElement(by By, value string) (*WebElement, error) {
-	return findElement(e.c, by, value, &e.id)
+	return e.c.findElement(by, value, &e.id)
 }
 
 func (e *WebElement) FindElements(by By, value string) ([]*WebElement, error) {
-	return findElements(e.c, by, value, &e.id)
+	return e.c.findElements(by, value, &e.id)
 }
 
 func (e *WebElement) Enabled() bool {
@@ -68,55 +69,161 @@ func (e *WebElement) Text() string {
 	return getElementText(e.c, e.id)
 }
 
-func (e *WebElement) Attribute(name string) string {
-	return getElementAttribute(e.c, e.id, name)
+func Attribute[T any](e *WebElement, name string) (T, error) {
+	var out struct {
+		Value T `json:"value"`
+	}
+	err := e.getAttribute(name, &out)
+	return out.Value, err
 }
 
-func (e *WebElement) Property(name string) string {
-	return getElementProperty(e.c, e.id, name)
+func (e *WebElement) getAttribute(name string, dest any) error {
+	r, err := e.c.tr.Send("WebDriver:GetElementAttribute", map[string]any{
+		"id": e.id, "name": name,
+	})
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal([]byte(r.Value), dest)
 }
 
-func (e *WebElement) CssValue(property string) string {
-	return getElementCssPropertyValue(e.c, e.id, property)
+func (e *WebElement) Attribute(name string) (string, error) {
+	return Attribute[string](e, name)
+}
+
+func Property[T any](e *WebElement, name string) (T, error) {
+	var out struct {
+		Value T `json:"value"`
+	}
+	err := e.getProperty(name, &out)
+	return out.Value, err
+}
+
+func (e *WebElement) getProperty(name string, dest any) error {
+	r, err := e.c.tr.Send("WebDriver:GetElementProperty", map[string]any{
+		"id": e.id, "name": name,
+	})
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal([]byte(r.Value), dest)
+}
+
+func (e *WebElement) Property(name string) (any, error) {
+	return Property[any](e, name)
+}
+
+func (e *WebElement) PropertyRaw(name string) (json.RawMessage, error) {
+	return Property[json.RawMessage](e, name)
+}
+
+func (e *WebElement) PropertyInt(name string) (int, error) {
+	return Property[int](e, name)
+}
+
+func (e *WebElement) PropertyFloat(name string) (float64, error) {
+	return Property[float64](e, name)
+}
+
+func (e *WebElement) PropertyString(name string) (string, error) {
+	return Property[string](e, name)
+}
+
+func (e *WebElement) cssValue(property string, dest any) error {
+	r, err := e.c.tr.Send("WebDriver:GetElementCSSValue", map[string]any{
+		"id": e.id, "propertyName": property,
+	})
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal([]byte(r.Value), dest)
+}
+
+func (e *WebElement) CssValue(property string) (any, error) {
+	var out struct {
+		Value any `json:"value"`
+	}
+	err := e.cssValue(property, &out)
+	return out.Value, err
 }
 
 func (e *WebElement) Rect() (*ElementRect, error) {
-	return getElementRect(e.c, e.id)
-}
-
-func (e *WebElement) Click() {
-	clickElement(e.c, e.id)
-}
-
-func (e *WebElement) SendKeys(keys string) error {
-	return sendKeysToElement(e.c, e.id, keys)
-}
-
-func (e *WebElement) Clear() {
-	clearElement(e.c, e.id)
-}
-
-func (e *WebElement) Location() (*Point, error) {
-	r, err := getElementRect(e.c, e.id)
+	r, err := e.c.tr.Send("WebDriver:GetElementRect", map[string]any{
+		"id": e.id,
+	})
 	if err != nil {
 		return nil, err
 	}
+	d := &ElementRect{}
+	err = json.Unmarshal([]byte(r.Value), d)
+	if err != nil {
+		return nil, err
+	}
+	return d, nil
+}
 
+func (e *WebElement) Click() {
+	r, err := e.c.tr.Send("WebDriver:ElementClick", map[string]any{"id": e.id})
+	if err != nil {
+		return
+	}
+
+	var d = map[string]any{}
+	json.Unmarshal([]byte(r.Value), &d)
+}
+
+func (e *WebElement) SendKeys(keys string) error {
+	//slice := make([]string, 0)
+	//for _, v := range keys {
+	//	slice = append(slice, fmt.Sprintf("%c", v))
+	//}
+	//
+	//r, err := c.transport.Send("sendKeysToElement", map[string]any{"id": id, "value": slice})
+	r, err := e.c.tr.Send("WebDriver:ElementSendKeys", map[string]any{"id": e.id, "text": keys})
+	if err != nil {
+		return err
+	}
+
+	var d = map[string]any{}
+	json.Unmarshal([]byte(r.Value), &d)
+
+	return nil
+}
+
+func (e *WebElement) Clear() {
+	r, err := e.c.tr.Send("WebDriver:ElementClear", map[string]any{"id": e.id})
+	if err != nil {
+		return
+	}
+
+	var d = map[string]any{}
+	json.Unmarshal([]byte(r.Value), &d)
+}
+
+func (e *WebElement) Location() (*Point, error) {
+	r, err := e.Rect()
+	if err != nil {
+		return nil, err
+	}
 	return &r.Point, nil
 }
 
 func (e *WebElement) Size() (*Size, error) {
-	r, err := getElementRect(e.c, e.id)
+	r, err := e.Rect()
 	if err != nil {
 		return nil, err
 	}
-
 	return &r.Size, nil
 }
 
-func (e *WebElement) Screenshot() (string, error) {
+func (e *WebElement) Screenshot() ([]byte, error) {
 	id := e.Id()
-	return takeScreenshot(e.c, &id)
+	return e.c.takeScreenshot(&id)
+}
+
+func (e *WebElement) ScreenshotImage() (image.Image, error) {
+	id := e.Id()
+	return e.c.takeScreenshotImage(&id)
 }
 
 func (e *WebElement) UnmarshalJSON(data []byte) error {
@@ -125,15 +232,14 @@ func (e *WebElement) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-
-	if newId, ok := d["value"][WEBDRIVER_ELEMENT_KEY]; ok {
-		e.id = newId
-		return nil
+	newId, ok := d["value"][WEBDRIVER_ELEMENT_KEY]
+	if !ok {
+		return &DriverError{
+			ErrorType:  "WebDriverElementKey",
+			Message:    fmt.Sprintf("key %v expected in response but not found", WEBDRIVER_ELEMENT_KEY),
+			Stacktrace: nil,
+		}
 	}
-
-	return DriverError{
-		ErrorType: "WebDriverElementKey",
-		Message: fmt.Sprintf("key %v expected in response but not found", WEBDRIVER_ELEMENT_KEY),
-		Stacktrace: nil,
-	}
+	e.id = newId
+	return nil
 }

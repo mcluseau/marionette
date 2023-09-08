@@ -1,11 +1,11 @@
-package marionette_client
+package marionette
 
 type Cookie struct {
-	Secure   bool	`json:"secure,omitempty"`
-	Expiry   uint	`json:"expiry,omitempty"`
-	Domain   string	`json:"domain,omitempty"`
-	HttpOnly bool	`json:"httpOnly,omitempty"`
+	Secure   bool   `json:"secure,omitempty"`
+	Expiry   uint   `json:"expiry,omitempty"`
+	Domain   string `json:"domain,omitempty"`
+	HttpOnly bool   `json:"httpOnly,omitempty"`
 	Name     string `json:"name"`
-	Path     string	`json:"path,omitempty"`
-	Value    string	`json:"value"`
+	Path     string `json:"path,omitempty"`
+	Value    string `json:"value"`
 }

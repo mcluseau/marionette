@@ -1,4 +1,4 @@
-package marionette_client
+package marionette
 
 func ElementIsPresent(by By, value string) func(f Finder) (bool, *WebElement, error) {
 	return func(f Finder) (bool, *WebElement, error) {

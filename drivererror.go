@@ -1,4 +1,4 @@
-package marionette_client
+package marionette
 
 type DriverError struct {
 	ErrorType  string `json:"Error"`
@@ -6,10 +6,10 @@ type DriverError struct {
 	Stacktrace *string
 }
 
-func (e DriverError) Error() string {
+func (e *DriverError) Error() string {
 	return e.Message
 }
 
-func (e DriverError) String() string {
+func (e *DriverError) String() string {
 	return e.Error()
 }

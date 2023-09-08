@@ -1,11 +1,15 @@
-[![Go Reference](https://pkg.go.dev/badge/marionette_client.svg)](https://pkg.go.dev/github.com/njasm/marionette_client)
-[![Build Status](https://github.com/njasm/marionette_client/workflows/CI/badge.svg)](https://github.com/njasm/marionette_client/actions?query=workflow%3ACI)
-[![Coverage Status](https://coveralls.io/repos/github/njasm/marionette_client/badge.svg?branch=master)](https://coveralls.io/github/njasm/marionette_client?branch=master)
-[![Go Report Card](https://goreportcard.com/badge/github.com/njasm/marionette_client)](https://goreportcard.com/report/github.com/njasm/marionette_client)
+[![Go Reference](https://pkg.go.dev/badge/marionette_client.svg)](https://pkg.go.dev/github.com/dennwc/marionette)
+[![Build Status](https://github.com/dennwc/marionette/workflows/CI/badge.svg)](https://github.com/dennwc/marionette/actions?query=workflow%3ACI)
+[![Coverage Status](https://coveralls.io/repos/github/dennwc/marionette/badge.svg?branch=master)](https://coveralls.io/github/dennwc/marionette?branch=master)
+[![Go Report Card](https://goreportcard.com/badge/github.com/dennwc/marionette)](https://goreportcard.com/report/github.com/dennwc/marionette)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://choosealicense.com/licenses/mit/)
 
-# marionette_client
-Mozilla's Gecko Marionette client in golang
+# Marionette Go client
+Mozilla's Gecko Marionette client in Golang.
+
+Originally forked from [njasm/marionette_client](https://github.com/njasm/marionette_client).
+
+Work-in-progress. Expect API breakage.
 
 ## What is Marionette
 "Marionette is an automation driver for Mozilla's Gecko engine. It can remotely control either the UI, or the internal 
