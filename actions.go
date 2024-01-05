@@ -25,6 +25,14 @@ func (a *Actions) Wheel(id string) (ret *InputActions) {
 	return
 }
 
+func (a *Actions) Key() (ret *InputActions) {
+	ret = &InputActions{
+		Type: "key",
+	}
+	a.Actions = append(a.Actions, ret)
+	return
+}
+
 type InputActions struct {
 	Type       string `json:"type"`
 	Id         string `json:"id,omitEmpty"`
@@ -55,6 +63,13 @@ func (ia *InputActions) Add(action any) {
 
 	case Scroll:
 		v.Type = "scroll"
+		ia.Actions = append(ia.Actions, v)
+
+	case KeyUp:
+		v.Type = "keyUp"
+		ia.Actions = append(ia.Actions, v)
+	case KeyDown:
+		v.Type = "keyDown"
 		ia.Actions = append(ia.Actions, v)
 
 	default:
@@ -91,4 +106,13 @@ type Scroll struct {
 	Y        int    `json:"y"`
 	DeltaX   int    `json:"deltaX"`
 	DeltaY   int    `json:"deltaY"`
+}
+
+type KeyDown struct {
+	Type  string `json:"type"`
+	Value string `json:"value"`
+}
+type KeyUp struct {
+	Type  string `json:"type"`
+	Value string `json:"value"`
 }
